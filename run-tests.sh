@@ -35,6 +35,7 @@ TESTS_SSP="stacksmash"
 TESTS_ASAN="stacksmash"
 TESTS_UBSAN="ubsan"
 TESTS_UWP="uwp_error"
+TESTS_WINRT="winrt_error"
 for arch in $ARCHS; do
   for target_os in $TARGET_OSES; do
     TEST_DIR="$arch-$target_os"
@@ -84,6 +85,26 @@ for arch in $ARCHS; do
             ;;
         *)
             if [ $UWP_ERROR -ne 0 ]; then
+                TESTS_EXTRA="$TESTS_EXTRA $test"
+            fi
+            ;;
+        esac
+    done
+    for test in $TESTS_WINRT; do
+        set +e
+        # compilation should fail for WinRT
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test.exe -Wimplicit-function-declaration -Werror
+        WINRT_ERROR=$?
+        set -e
+        case $target_os in
+        mingw32winrt)
+            if [ $WINRT_ERROR -eq 0 ]; then
+                echo "WinRT compilation should have failed for test $test!"
+                exit 1
+            fi
+            ;;
+        *)
+            if [ $WINRT_ERROR -ne 0 ]; then
                 TESTS_EXTRA="$TESTS_EXTRA $test"
             fi
             ;;

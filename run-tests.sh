@@ -34,6 +34,7 @@ TESTS_CPP_DLL="tlstest-lib"
 TESTS_SSP="stacksmash"
 TESTS_ASAN="stacksmash"
 TESTS_UBSAN="ubsan"
+TESTS_UWP="uwp_error"
 for arch in $ARCHS; do
   for target_os in $TARGET_OSES; do
     TEST_DIR="$arch-$target_os"
@@ -67,6 +68,26 @@ for arch in $ARCHS; do
     done
     for test in $TESTS_SSP; do
         $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test.exe -fstack-protector-strong
+    done
+    for test in $TESTS_UWP; do
+        set +e
+        # compilation should fail for UWP and WinRT
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test.exe -Wimplicit-function-declaration -Werror
+        UWP_ERROR=$?
+        set -e
+        case $target_os in
+        mingw32uwp|mingw32winrt)
+            if [ $UWP_ERROR -eq 0 ]; then
+                echo "UWP compilation should have failed for test $test!"
+                exit 1
+            fi
+            ;;
+        *)
+            if [ $UWP_ERROR -ne 0 ]; then
+                TESTS_EXTRA="$TESTS_EXTRA $test"
+            fi
+            ;;
+        esac
     done
     # These aren't run, since asan doesn't work within wine.
     for test in $TESTS_ASAN; do

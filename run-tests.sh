@@ -10,6 +10,7 @@ PREFIX="$1"
 export PATH=$PREFIX/bin:$PATH
 
 : ${ARCHS:=${TOOLCHAIN_ARCHS-i686 x86_64 armv7 aarch64}}
+: ${TARGET_OSES:=${TOOLCHAIN_TARGET_OSES-mingw32 mingw32uwp mingw32winrt}}
 
 if [ -z "$RUN_X86" ]; then
     case $(uname) in
@@ -34,30 +35,38 @@ TESTS_SSP="stacksmash"
 TESTS_ASAN="stacksmash"
 TESTS_UBSAN="ubsan"
 for arch in $ARCHS; do
-    TEST_DIR="$arch"
+  for target_os in $TARGET_OSES; do
+    TEST_DIR="$arch-$target_os"
     mkdir -p $TEST_DIR
     for test in $TESTS_C; do
-        $arch-w64-mingw32-clang $test.c -o $TEST_DIR/$test.exe
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test.exe
     done
     for test in $TESTS_C_DLL; do
-        $arch-w64-mingw32-clang $test.c -shared -o $TEST_DIR/$test.dll -Wl,--out-implib,$TEST_DIR/lib$test.dll.a
+        $arch-w64-$target_os-clang $test.c -shared -o $TEST_DIR/$test.dll -Wl,--out-implib,$TEST_DIR/lib$test.dll.a
     done
     for test in $TESTS_C_LINK_DLL; do
-        $arch-w64-mingw32-clang $test.c -o $TEST_DIR/$test.exe -L$TEST_DIR -l${test%-main}-lib
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test.exe -L$TEST_DIR -l${test%-main}-lib
     done
     TESTS_EXTRA=""
     for test in $TESTS_C_NO_BUILTIN; do
-        $arch-w64-mingw32-clang $test.c -o $TEST_DIR/$test-no-builtin.exe -fno-builtin
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test-no-builtin.exe -fno-builtin
         TESTS_EXTRA="$TESTS_EXTRA $test-no-builtin"
     done
     for test in $TESTS_CPP; do
-        $arch-w64-mingw32-clang++ $test.cpp -o $TEST_DIR/$test.exe
+        if [ "$test" = "tlstest-main" ]; then
+            case $target_os in
+            # DLLs can't be loaded without a Windows package
+            mingw32uwp|mingw32winrt) continue ;;
+            *) ;;
+            esac
+        fi
+        $arch-w64-$target_os-clang++ $test.cpp -o $TEST_DIR/$test.exe
     done
     for test in $TESTS_CPP_DLL; do
-        $arch-w64-mingw32-clang++ $test.cpp -shared -o $TEST_DIR/$test.dll
+        $arch-w64-$target_os-clang++ $test.cpp -shared -o $TEST_DIR/$test.dll
     done
     for test in $TESTS_SSP; do
-        $arch-w64-mingw32-clang $test.c -o $TEST_DIR/$test.exe -fstack-protector-strong
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test.exe -fstack-protector-strong
     done
     # These aren't run, since asan doesn't work within wine.
     for test in $TESTS_ASAN; do
@@ -66,7 +75,7 @@ for arch in $ARCHS; do
         i686|x86_64) ;;
         *) continue ;;
         esac
-        $arch-w64-mingw32-clang $test.c -o $TEST_DIR/$test-asan.exe -fsanitize=address -g -gcodeview -Wl,-pdb,$arch/$test-asan.pdb
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test-asan.exe -fsanitize=address -g -gcodeview -Wl,-pdb,$TEST_DIR/$test-asan.pdb
     done
     for test in $TESTS_UBSAN; do
         case $arch in
@@ -75,7 +84,7 @@ for arch in $ARCHS; do
         i686|x86_64) ;;
         *) continue ;;
         esac
-        $arch-w64-mingw32-clang $test.c -o $TEST_DIR/$test.exe -fsanitize=undefined
+        $arch-w64-$target_os-clang $test.c -o $TEST_DIR/$test.exe -fsanitize=undefined
         TESTS_EXTRA="$TESTS_EXTRA $test"
     done
     DLL="$TESTS_C_DLL $TESTS_CPP_DLL"
@@ -119,4 +128,5 @@ for arch in $ARCHS; do
         fi
     done
     cd ..
+  done
 done

@@ -35,8 +35,11 @@ aarch64) M=arm64pe  ;;
 esac
 FLAGS="-m $M"
 case $TARGET_OS in
-mingw32uwp|mingw32winrt)
-	FLAGS="$FLAGS -lmincore"
+mingw32uwp)
+	FLAGS="$FLAGS -lmincore -lvcruntime140_app"
+	;;
+mingw32winrt)
+	FLAGS="$FLAGS -lmincore -lmsvcp120_app"
 	;;
 esac
 ld.lld $FLAGS "$@"

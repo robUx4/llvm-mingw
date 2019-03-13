@@ -303,6 +303,9 @@ int _tmain(int argc, TCHAR* argv[]) {
         exec_argv[arg++] = _T("-DWINAPI_FAMILY=WINAPI_FAMILY_APP");
         // the Windows Store API only supports Windows Unicode (some rare ANSI ones are available)
         exec_argv[arg++] = _T("-DUNICODE");
+        // add the minimum runtime to use for UWP targets
+        exec_argv[arg++] = _T("-Wl,-lmincore");
+        exec_argv[arg++] = _T("-Wl,-lvcruntime140_app");
     } else if (target_os && !_tcscmp(target_os, _T("mingw32winrt"))) {
         // the WinRT target is for Windows 8.1
         exec_argv[arg++] = _T("-D_WIN32_WINNT=0x0603 -DWINVER=0x0603");
@@ -311,6 +314,9 @@ int _tmain(int argc, TCHAR* argv[]) {
         // the Windows Store API only supports Windows Unicode (some rare ANSI ones are available)
         // TODO should be replaced by -municode
         exec_argv[arg++] = _T("-DUNICODE");
+        // add the minimum runtime to use for WinRT targets
+        exec_argv[arg++] = _T("-Wl,-lmincore");
+        exec_argv[arg++] = _T("-Wl,-lmsvcp120_app");
     }
 
     exec_argv[arg++] = _T("-target");

@@ -61,6 +61,9 @@ mingw32uwp)
     FLAGS="$FLAGS -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
     # the Windows Store API only supports Windows Unicode (some rare ANSI ones are available)
     FLAGS="$FLAGS -DUNICODE"
+    # add the minimum runtime to use for UWP targets
+    FLAGS="$FLAGS -Wl,-lmincore"
+    FLAGS="$FLAGS -Wl,-lvcruntime140_app"
     ;;
 mingw32winrt)
     # the WinRT target is for Windows 8.1
@@ -70,6 +73,9 @@ mingw32winrt)
     # the Windows Store API only supports Windows Unicode (some rare ANSI ones are available)
     # TODO should be replaced by -municode
     FLAGS="$FLAGS -DUNICODE"
+    # add the minimum runtime to use for WinRT targets
+    FLAGS="$FLAGS -Wl,-lmincore"
+    FLAGS="$FLAGS -Wl,-lmsvcp120_app"
     ;;
 esac
 
